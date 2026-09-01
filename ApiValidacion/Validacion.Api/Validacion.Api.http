@@ -1,0 +1,6 @@
+@Validacion.Api_HostAddress = http://localhost:5012
+
+GET {{Validacion.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
