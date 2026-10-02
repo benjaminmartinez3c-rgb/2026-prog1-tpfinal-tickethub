@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -6,4 +6,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-</Project>
+<ItemGroup><ProjectReference Include="..\..\ApiGestion\Gestion.Logica\Gestion.Logica.csproj" /></ItemGroup><ItemGroup><ProjectReference Include="..\..\ApiGestion\Gestion.Logica\Gestion.Logica.csproj" /></ItemGroup></Project>

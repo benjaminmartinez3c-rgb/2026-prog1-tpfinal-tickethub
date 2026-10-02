@@ -1,0 +1,12 @@
+[
+  { "dni": 30111222, "nombre": "Lucía Fernández", "username": "lfernandez", "rol": "Organizador" },
+  { "dni": 29888777, "nombre": "Martín Aguirre", "username": "maguirre", "rol": "Organizador" },
+  { "dni": 40123456, "nombre": "Sofía Gómez", "username": "sgomez", "rol": "Comprador" },
+  { "dni": 38456789, "nombre": "Nicolás Pereyra", "username": "npereyra", "rol": "Comprador" },
+  { "dni": 41234567, "nombre": "Valentina Ríos", "username": "vrios", "rol": "Comprador" },
+  { "dni": 37654321, "nombre": "Tomás Ibáñez", "username": "tibanez", "rol": "Comprador" },
+  { "dni": 42345678, "nombre": "Camila Suárez", "username": "csuarez", "rol": "Comprador" },
+  { "dni": 39876543, "nombre": "Agustín Molina", "username": "amolina", "rol": "Comprador" },
+  { "dni": 43456789, "nombre": "Julieta Torres", "username": "jtorres", "rol": "Comprador" },
+  { "dni": 36765432, "nombre": "Bruno Acosta", "username": "bacosta", "rol": "Comprador" }
+]

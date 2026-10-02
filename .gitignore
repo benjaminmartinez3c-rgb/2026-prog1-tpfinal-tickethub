@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+Datos/datos.json
+Datos/datos.json.tmp
+Datos/datos.lock
