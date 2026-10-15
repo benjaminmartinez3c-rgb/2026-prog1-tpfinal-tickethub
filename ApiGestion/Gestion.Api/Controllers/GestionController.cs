@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Mvc;
 using Gestion.Api.Models;
 using Gestion.Logica.Archivos;
@@ -31,6 +32,7 @@ public class GestionController : ControllerBase
     {
         using var bloqueo = _archivos.AbrirBloqueo();
         Datos datos = _archivos.LeerDatos();
+
         var servicio = new ServicioEvento(datos.Eventos);
         return Ok(servicio.ObtenerEventos());
     }
@@ -40,22 +42,48 @@ public class GestionController : ControllerBase
     {
         using var bloqueo = _archivos.AbrirBloqueo();
         Datos datos = _archivos.LeerDatos();
+
         var servicio = new ServicioEvento(datos.Eventos);
         Evento? evento = servicio.ObtenerEvento(id);
+
         if (evento == null)
             return NotFound();
+
         return Ok(evento);
     }
+
     [HttpPost("eventos")]
-    public IActionResult CrearEvento(int dni, Evento evento)
+    public IActionResult CrearEvento(int dni, PedidoEvento pedido)
     {
         try
         {
             _usuarios.ValidarRol(dni, "Organizador");
+
             using var bloqueo = _archivos.AbrirBloqueo();
             Datos datos = _archivos.LeerDatos();
+
+            Evento evento = new Evento
+            {
+                Nombre = pedido.Nombre,
+                Descripcion = pedido.Descripcion,
+                Fecha = pedido.Fecha,
+                Lugar = pedido.Lugar
+            };
+
+            foreach (PedidoModalidad item in pedido.Modalidades)
+            {
+                evento.Modalidades.Add(new ModalidadEntrada
+                {
+                    Nombre = item.Nombre,
+                    Beneficios = item.Beneficios,
+                    Precio = item.Precio,
+                    CupoTotal = item.CupoTotal
+                });
+            }
+
             var servicio = new ServicioEvento(datos.Eventos);
             Evento creado = servicio.CrearEvento(evento);
+
             _archivos.GuardarDatos(datos);
             return Created("/api/eventos/" + creado.Id, creado);
         }
@@ -68,16 +96,20 @@ public class GestionController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
     [HttpPut("eventos/{id}")]
-    public IActionResult EditarEvento(int id, int dni, Evento evento)
+    public IActionResult EditarEvento(int id, int dni, PedidoEvento pedido)
     {
         try
         {
             _usuarios.ValidarRol(dni, "Organizador");
+
             using var bloqueo = _archivos.AbrirBloqueo();
             Datos datos = _archivos.LeerDatos();
+
             var servicio = new ServicioEvento(datos.Eventos);
-            servicio.EditarEvento(id, evento.Nombre, evento.Descripcion, evento.Fecha, evento.Lugar);
+            servicio.EditarEvento(id, pedido.Nombre, pedido.Descripcion, pedido.Fecha, pedido.Lugar);
+
             _archivos.GuardarDatos(datos);
             return NoContent();
         }
@@ -90,16 +122,20 @@ public class GestionController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
     [HttpPut("eventos/{id}/cancelar")]
     public IActionResult CancelarEvento(int id, int dni)
     {
         try
         {
             _usuarios.ValidarRol(dni, "Organizador");
+
             using var bloqueo = _archivos.AbrirBloqueo();
             Datos datos = _archivos.LeerDatos();
+
             var servicio = new ServicioEvento(datos.Eventos);
             servicio.CancelarEvento(id);
+
             _archivos.GuardarDatos(datos);
             return NoContent();
         }
@@ -112,16 +148,28 @@ public class GestionController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
     [HttpPost("eventos/{id}/modalidades")]
-    public IActionResult AgregarModalidad(int id, int dni, ModalidadEntrada modalidad)
+    public IActionResult AgregarModalidad(int id, int dni, PedidoModalidad pedido)
     {
         try
         {
             _usuarios.ValidarRol(dni, "Organizador");
+
             using var bloqueo = _archivos.AbrirBloqueo();
             Datos datos = _archivos.LeerDatos();
+
+            ModalidadEntrada modalidad = new ModalidadEntrada
+            {
+                Nombre = pedido.Nombre,
+                Beneficios = pedido.Beneficios,
+                Precio = pedido.Precio,
+                CupoTotal = pedido.CupoTotal
+            };
+
             var servicio = new ServicioEvento(datos.Eventos);
             servicio.AgregarModalidad(id, modalidad);
+
             _archivos.GuardarDatos(datos);
             return Ok(modalidad);
         }
@@ -134,16 +182,20 @@ public class GestionController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
     [HttpPost("compras")]
     public IActionResult Comprar(PedidoCompra pedido)
     {
         try
         {
             _usuarios.ValidarRol(pedido.DNI, "Comprador");
+
             using var bloqueo = _archivos.AbrirBloqueo();
             Datos datos = _archivos.LeerDatos();
+
             var servicio = new ServicioCompra(datos);
             Compra compra = servicio.Comprar(pedido.EventoId, pedido.ModalidadId, pedido.Cantidad, pedido.DNI);
+
             _archivos.GuardarDatos(datos);
             return Created("/api/compras/" + compra.Id, compra);
         }
@@ -156,25 +208,32 @@ public class GestionController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+
     [HttpGet("compras/{id}")]
     public IActionResult ObtenerCompra(int id)
     {
         using var bloqueo = _archivos.AbrirBloqueo();
         Datos datos = _archivos.LeerDatos();
+
         var servicio = new ServicioCompra(datos);
         Compra? compra = servicio.ObtenerCompra(id);
+
         if (compra == null)
             return NotFound();
+
         return Ok(compra);
     }
+
     [HttpGet("reportes/recaudacion")]
     public IActionResult ObtenerRecaudacion(int dni)
     {
         try
         {
             _usuarios.ValidarRol(dni, "Organizador");
+
             using var bloqueo = _archivos.AbrirBloqueo();
             Datos datos = _archivos.LeerDatos();
+
             var servicio = new ServicioCompra(datos);
             return Ok(servicio.ObtenerRecaudacion());
         }
@@ -188,4 +247,3 @@ public class GestionController : ControllerBase
         }
     }
 }
-
