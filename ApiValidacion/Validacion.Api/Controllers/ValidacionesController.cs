@@ -12,11 +12,12 @@ public class ValidacionesController : ControllerBase
 {
     private ArchivoDatos _archivos;
 
-    public ValidacionesController(IWebHostEnvironment entorno)
-    {
-        string carpeta = Path.Combine(entorno.ContentRootPath, "..", "..", "Datos");
-        _archivos = new ArchivoDatos(carpeta);
-    }
+    
+public ValidacionesController(ArchivoDatos archivos)
+{
+    _archivos = archivos;
+}
+
 
     [HttpPost]
     public IActionResult Validar(PedidoValidacion pedido)

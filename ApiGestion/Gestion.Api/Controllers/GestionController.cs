@@ -14,12 +14,13 @@ public class GestionController : ControllerBase
     private ArchivoDatos _archivos;
     private ServicioUsuario _usuarios;
 
-    public GestionController(IWebHostEnvironment entorno)
-    {
-        string carpeta = Path.Combine(entorno.ContentRootPath, "..", "..", "Datos");
-        _archivos = new ArchivoDatos(carpeta);
-        _usuarios = new ServicioUsuario(_archivos.LeerUsuarios());
+   
+        public GestionController(ArchivoDatos archivos, ServicioUsuario usuarios)
+        {
+            _archivos = archivos;
+            _usuarios = usuarios;
     }
+
 
     [HttpGet("usuarios")]
     public IActionResult ObtenerUsuarios()
