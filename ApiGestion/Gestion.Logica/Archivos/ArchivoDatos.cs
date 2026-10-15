@@ -1,4 +1,6 @@
+
 using System.Text.Json;
+using Gestion.Logica.Entidades;
 
 namespace Gestion.Logica.Archivos;
 
@@ -11,6 +13,7 @@ public class ArchivoDatos
     {
         _carpeta = carpeta;
         Directory.CreateDirectory(carpeta);
+
         _opciones = new JsonSerializerOptions();
         _opciones.PropertyNameCaseInsensitive = true;
         _opciones.WriteIndented = true;
@@ -26,6 +29,7 @@ public class ArchivoDatos
     public Datos LeerDatos()
     {
         string ruta = Path.Combine(_carpeta, "datos.json");
+
         if (!File.Exists(ruta))
             return new Datos();
 
@@ -37,13 +41,13 @@ public class ArchivoDatos
     {
         string ruta = Path.Combine(_carpeta, "datos.json");
         string json = JsonSerializer.Serialize(datos, _opciones);
+
         File.WriteAllText(ruta + ".tmp", json);
         File.Move(ruta + ".tmp", ruta, true);
     }
 
     public FileStream AbrirBloqueo()
     {
-        // Mantener abierto este archivo impide que las dos APIs modifiquen los datos a la vez.
         for (int intento = 0; intento < 100; intento++)
         {
             try
@@ -56,6 +60,7 @@ public class ArchivoDatos
                 Thread.Sleep(20);
             }
         }
-        throw new IOException("Los datos están siendo usados. Intentá de nuevo.");
+
+        throw new IOException("Los datos están siendo usados. Intentelo de vuelta.");
     }
 }

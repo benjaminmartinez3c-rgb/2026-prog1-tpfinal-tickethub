@@ -1,3 +1,6 @@
+
+using Gestion.Logica.Entidades;
+
 namespace Gestion.Logica.Servicios;
 
 public class ServicioUsuario
@@ -12,12 +15,14 @@ public class ServicioUsuario
     public void ValidarRol(int dni, string rol)
     {
         Usuario? usuario = null;
+
         foreach (Usuario usuarioGuardado in _usuarios)
         {
             if (usuarioGuardado.DNI == dni)
                 usuario = usuarioGuardado;
         }
+
         if (usuario == null || usuario.Rol != rol)
-            throw new UnauthorizedAccessException("El usuario no tiene permiso para esta acción.");
+            throw new UnauthorizedAccessException("el usuario no tiene permiso para esta accion");
     }
 }

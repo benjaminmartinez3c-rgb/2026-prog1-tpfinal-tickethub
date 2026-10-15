@@ -1,4 +1,4 @@
-namespace Gestion.Logica;
+namespace Gestion.Logica.Entidades;
 
 public class Usuario
 {
