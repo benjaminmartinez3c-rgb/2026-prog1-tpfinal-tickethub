@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
 
@@ -19,21 +20,20 @@ public class ServicioCompra
             throw new Exception("El evento no existe.");
         if (evento.Cancelado || evento.Fecha <= DateTime.Now)
             throw new Exception("No se puede comprar para un evento cancelado o cuya fecha ya pasó.");
+
         ModalidadEntrada? modalidad = null;
         foreach (ModalidadEntrada modalidadEvento in evento.Modalidades)
         {
             if (modalidadEvento.Id == modalidadId)
                 modalidad = modalidadEvento;
         }
+
         if (modalidad == null)
             throw new Exception("La modalidad no existe.");
         if (cantidad <= 0)
             throw new Exception("La cantidad debe ser mayor a cero.");
         if (cantidad > modalidad.CupoDisponible)
             throw new Exception("No queda cupo suficiente.");
-        // Seis caracteres en base 36. El contador se guarda y nunca se reutiliza.
-        if (_datos.UltimoCodigo + cantidad >= 2176782336L)
-            throw new Exception("No quedan códigos disponibles.");
 
         var compra = new Compra
         {
@@ -42,35 +42,63 @@ public class ServicioCompra
             Fecha = DateTime.Now,
             Total = modalidad.Precio * cantidad
         };
+
         if (cantidad >= 5)
             compra.Total = compra.Total * 0.9m;
 
         for (int i = 0; i < cantidad; i++)
         {
-            _datos.UltimoCodigo++;
             compra.Entradas.Add(new Entrada
             {
-                Codigo = GenerarCodigo(_datos.UltimoCodigo),
+                Codigo = GenerarCodigo(compra),
                 CompraId = compra.Id,
                 EventoId = eventoId,
                 ModalidadEntradaId = modalidadId
             });
         }
+
         modalidad.CupoDisponible -= cantidad;
         _datos.Compras.Add(compra);
         return compra;
     }
 
-    private string GenerarCodigo(long numero)
+    private string GenerarCodigo(Compra compraActual)
     {
         const string caracteres = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        var codigo = new char[6];
-        for (int i = 5; i >= 0; i--)
+        string codigo;
+        bool repetido;
+
+        do
         {
-            codigo[i] = caracteres[(int)(numero % 36)];
-            numero /= 36;
-        }
-        return new string(codigo);
+            char[] letras = new char[6];
+
+            for (int i = 0; i < 6; i++)
+            {
+                int posicion = RandomNumberGenerator.GetInt32(caracteres.Length);
+                letras[i] = caracteres[posicion];
+            }
+
+            codigo = new string(letras);
+            repetido = false;
+
+            foreach (Compra compra in _datos.Compras)
+            {
+                foreach (Entrada entrada in compra.Entradas)
+                {
+                    if (entrada.Codigo == codigo)
+                        repetido = true;
+                }
+            }
+
+            foreach (Entrada entrada in compraActual.Entradas)
+            {
+                if (entrada.Codigo == codigo)
+                    repetido = true;
+            }
+
+        } while (repetido);
+
+        return codigo;
     }
 
     public Compra? ObtenerCompra(int id)
@@ -91,9 +119,11 @@ public class ServicioCompra
             var reporte = new ReporteEvento();
             reporte.EventoId = evento.Id;
             reporte.Nombre = evento.Nombre;
+
             foreach (Compra compra in _datos.Compras)
             {
                 bool perteneceAlEvento = false;
+
                 foreach (Entrada entrada in compra.Entradas)
                 {
                     if (entrada.EventoId == evento.Id)
@@ -102,9 +132,11 @@ public class ServicioCompra
                         perteneceAlEvento = true;
                     }
                 }
+
                 if (perteneceAlEvento)
                     reporte.Recaudacion += compra.Total;
             }
+
             reportes.Add(reporte);
         }
         return reportes;
