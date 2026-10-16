@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TicketHub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>TicketHub</h1>
+
+    <h2>Seleccionar usuario</h2>
+    <select id="usuario">
+        <option value="">Elegir usuario</option>
+    </select>
+
+    <h2>Eventos disponibles</h2>
+    <div id="eventos"></div>
+
+    <section id="detalle" hidden>
+        <h2 id="titulo"></h2>
+        <p id="descripcion"></p>
+        <p id="lugar"></p>
+
+        <h3>Modalidades</h3>
+        <select id="modalidad"></select>
+
+        <div id="compra" hidden>
+            <p>Cantidad de entradas:</p>
+            <input type="number" id="cantidad" min="1" value="1">
+            <button id="comprar">Comprar</button>
+        </div>
+
+        <p id="resultado"></p>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>

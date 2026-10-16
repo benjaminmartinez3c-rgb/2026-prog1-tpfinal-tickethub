@@ -1,6 +1,9 @@
-﻿namespace Gestion.Logica;
+﻿
+namespace Gestion.Logica.Excepciones;
 
-public class ReglaNegocioException
+public class ReglaNegocioException : Exception
 {
-
+    public ReglaNegocioException(string mensaje) : base(mensaje)
+    {
+    }
 }
