@@ -1,3 +1,15 @@
+TicketHub
+
+Integrantes: Benjamín Martínez y Santiago Pettinati
+Materia: Programación I - UCSE
+
+## Estructura del proyecto
+
+- `ApiGestion`: gestión de eventos y compras.
+- `ApiValidacion`: validación de entradas.
+- `Frontend`: página web para consultar eventos y comprar entradas.
+- `Datos`: contiene los archivos JSON. Ambas APIs utilizan el mismo `datos.json` para guardar y consultar la información.
+
 ```
 dotnet run --project ApiGestion/Gestion.Api --launch-profile http
 dotnet run --project ApiValidacion/Validacion.Api --launch-profile http
@@ -16,7 +28,21 @@ Para crear, editar, cancelar eventos, agregar modalidades y consultar recaudaci�
 Las compras de 5 o más entradas de la misma modalidad tienen 10% de descuento. Cada entrada tiene su propio código de seis caracteres. Para validar, pasar el evento y uno de esos códigos:
 
 ```json
-{ "codigo": "000001", "eventoId": 1 }
+{ "codigo": "A7B2C9", "eventoId": 1 }
 ```
 
 La validación se permite el día del evento y registra el ingreso. Un segundo intento se rechaza. El detalle de la compra muestra el estado actualizado de cada entrada.
+
+Ejecutar los tests
+
+Gestión:
+
+dotnet test ApiGestion/Gestion.sln
+
+Validación:
+
+dotnet test ApiValidacion/Validacion.sln
+
+Abrir el frontend
+
+Abrir Frontend/index.html con la extensión Live Server de VS Code, con la API de Gestión ejecutándose.

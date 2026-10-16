@@ -23,6 +23,6 @@ public class ServicioUsuario
         }
 
         if (usuario == null || usuario.Rol != rol)
-            throw new UnauthorizedAccessException("el usuario no tiene permiso para esta accion");
+            throw new UnauthorizedAccessException("El usuario no tiene permiso para esta acción.");
     }
 }

@@ -1,6 +1,8 @@
+
 using System.Security.Cryptography;
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
+using Gestion.Logica.Excepciones;
 
 namespace Gestion.Logica.Servicios;
 
@@ -16,12 +18,15 @@ public class ServicioCompra
     public Compra Comprar(int eventoId, int modalidadId, int cantidad, int dni)
     {
         Evento? evento = new ServicioEvento(_datos.Eventos).ObtenerEvento(eventoId);
+
         if (evento == null)
-            throw new Exception("El evento no existe.");
+            throw new RecursoNoEncontradoException("El evento no existe.");
+
         if (evento.Cancelado || evento.Fecha <= DateTime.Now)
-            throw new Exception("No se puede comprar para un evento cancelado o cuya fecha ya pasó.");
+            throw new ReglaNegocioException("No se puede comprar para un evento cancelado o cuya fecha ya pasó.");
 
         ModalidadEntrada? modalidad = null;
+
         foreach (ModalidadEntrada modalidadEvento in evento.Modalidades)
         {
             if (modalidadEvento.Id == modalidadId)
@@ -29,11 +34,13 @@ public class ServicioCompra
         }
 
         if (modalidad == null)
-            throw new Exception("La modalidad no existe.");
+            throw new RecursoNoEncontradoException("La modalidad no existe.");
+
         if (cantidad <= 0)
-            throw new Exception("La cantidad debe ser mayor a cero.");
+            throw new ReglaNegocioException("La cantidad debe ser mayor a cero.");
+
         if (cantidad > modalidad.CupoDisponible)
-            throw new Exception("No queda cupo suficiente.");
+            throw new ReglaNegocioException("No queda cupo suficiente.");
 
         var compra = new Compra
         {
@@ -59,6 +66,7 @@ public class ServicioCompra
 
         modalidad.CupoDisponible -= cantidad;
         _datos.Compras.Add(compra);
+
         return compra;
     }
 
@@ -108,12 +116,14 @@ public class ServicioCompra
             if (compra.Id == id)
                 return compra;
         }
+
         return null;
     }
 
     public List<ReporteEvento> ObtenerRecaudacion()
     {
         var reportes = new List<ReporteEvento>();
+
         foreach (Evento evento in _datos.Eventos)
         {
             var reporte = new ReporteEvento();
@@ -139,6 +149,7 @@ public class ServicioCompra
 
             reportes.Add(reporte);
         }
+
         return reportes;
     }
 }
