@@ -66,6 +66,7 @@ async function comprar() {
         return;
     }
 
+   
     const compra = await respuesta.json();
     let codigos = "";
 
@@ -73,9 +74,10 @@ async function comprar() {
         codigos += entrada.codigo + " ";
     }
 
-    await verEvento(eventoId);
+    document.getElementById("resultado").textContent =
+        "Compra exitosa - Total: $" + compra.total +
+        " - Entradas: " + codigos;
 
-    document.getElementById("resultado").textContent = "Compra exitosa - Total: $" + compra.total + " - Entradas: " + codigos;
 }
 
 document.getElementById("usuario").addEventListener("change", cambiarUsuario);
