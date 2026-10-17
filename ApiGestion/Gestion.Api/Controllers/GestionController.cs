@@ -1,8 +1,8 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Gestion.Api.Models;
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
+using Gestion.Logica.Excepciones;
 using Gestion.Logica.Servicios;
 
 namespace Gestion.Api.Controllers;
@@ -13,44 +13,55 @@ public class GestionController : ControllerBase
 {
     private ArchivoDatos _archivos;
     private ServicioUsuario _usuarios;
+    private Datos _datos;
+    private ServicioEvento _eventos;
+    private ServicioCompra _compras;
 
-   
-        public GestionController(ArchivoDatos archivos, ServicioUsuario usuarios)
-        {
-            _archivos = archivos;
-            _usuarios = usuarios;
+    public GestionController(
+        ArchivoDatos archivos,
+        ServicioUsuario usuarios,
+        Datos datos,
+        ServicioEvento eventos,
+        ServicioCompra compras)
+    {
+        _archivos = archivos;
+        _usuarios = usuarios;
+        _datos = datos;
+        _eventos = eventos;
+        _compras = compras;
     }
-
 
     [HttpGet("usuarios")]
     public IActionResult ObtenerUsuarios()
     {
-        return Ok(_archivos.LeerUsuarios());
+        var respuestas = new List<UsuarioRespuesta>();
+
+        foreach (Usuario usuario in _archivos.LeerUsuarios())
+            respuestas.Add(new UsuarioRespuesta(usuario));
+
+        return Ok(respuestas);
     }
 
     [HttpGet("eventos")]
     public IActionResult ObtenerEventos()
     {
-        using var bloqueo = _archivos.AbrirBloqueo();
-        Datos datos = _archivos.LeerDatos();
+        var respuestas = new List<EventoRespuesta>();
 
-        var servicio = new ServicioEvento(datos.Eventos);
-        return Ok(servicio.ObtenerEventos());
+        foreach (Evento evento in _eventos.ObtenerEventos())
+            respuestas.Add(new EventoRespuesta(evento));
+
+        return Ok(respuestas);
     }
 
     [HttpGet("eventos/{id}")]
     public IActionResult ObtenerEvento(int id)
     {
-        using var bloqueo = _archivos.AbrirBloqueo();
-        Datos datos = _archivos.LeerDatos();
-
-        var servicio = new ServicioEvento(datos.Eventos);
-        Evento? evento = servicio.ObtenerEvento(id);
+        Evento? evento = _eventos.ObtenerEvento(id);
 
         if (evento == null)
             return NotFound();
 
-        return Ok(evento);
+        return Ok(new EventoRespuesta(evento));
     }
 
     [HttpPost("eventos")]
@@ -58,10 +69,7 @@ public class GestionController : ControllerBase
     {
         try
         {
-            _usuarios.ValidarRol(dni, "Organizador");
-
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
+            _usuarios.ValidarRol(dni, RolUsuario.Organizador);
 
             Evento evento = new Evento
             {
@@ -82,17 +90,20 @@ public class GestionController : ControllerBase
                 });
             }
 
-            var servicio = new ServicioEvento(datos.Eventos);
-            Evento creado = servicio.CrearEvento(evento);
+            Evento creado = _eventos.CrearEvento(evento);
 
-            _archivos.GuardarDatos(datos);
-            return Created("/api/eventos/" + creado.Id, creado);
+            _archivos.GuardarDatos(_datos);
+            return Created("/api/eventos/" + creado.Id, new EventoRespuesta(creado));
         }
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ex.Message);
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -103,22 +114,22 @@ public class GestionController : ControllerBase
     {
         try
         {
-            _usuarios.ValidarRol(dni, "Organizador");
+            _usuarios.ValidarRol(dni, RolUsuario.Organizador);
 
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
+            _eventos.EditarEvento(id, pedido.Nombre, pedido.Descripcion, pedido.Fecha, pedido.Lugar);
 
-            var servicio = new ServicioEvento(datos.Eventos);
-            servicio.EditarEvento(id, pedido.Nombre, pedido.Descripcion, pedido.Fecha, pedido.Lugar);
-
-            _archivos.GuardarDatos(datos);
+            _archivos.GuardarDatos(_datos);
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ex.Message);
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -129,22 +140,22 @@ public class GestionController : ControllerBase
     {
         try
         {
-            _usuarios.ValidarRol(dni, "Organizador");
+            _usuarios.ValidarRol(dni, RolUsuario.Organizador);
 
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
+            _eventos.CancelarEvento(id);
 
-            var servicio = new ServicioEvento(datos.Eventos);
-            servicio.CancelarEvento(id);
-
-            _archivos.GuardarDatos(datos);
+            _archivos.GuardarDatos(_datos);
             return NoContent();
         }
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ex.Message);
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -155,10 +166,7 @@ public class GestionController : ControllerBase
     {
         try
         {
-            _usuarios.ValidarRol(dni, "Organizador");
-
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
+            _usuarios.ValidarRol(dni, RolUsuario.Organizador);
 
             ModalidadEntrada modalidad = new ModalidadEntrada
             {
@@ -168,17 +176,20 @@ public class GestionController : ControllerBase
                 CupoTotal = pedido.CupoTotal
             };
 
-            var servicio = new ServicioEvento(datos.Eventos);
-            servicio.AgregarModalidad(id, modalidad);
+            _eventos.AgregarModalidad(id, modalidad);
 
-            _archivos.GuardarDatos(datos);
-            return Ok(modalidad);
+            _archivos.GuardarDatos(_datos);
+            return Ok(new ModalidadRespuesta(modalidad));
         }
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ex.Message);
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -189,22 +200,22 @@ public class GestionController : ControllerBase
     {
         try
         {
-            _usuarios.ValidarRol(pedido.DNI, "Comprador");
+            _usuarios.ValidarRol(pedido.DNI, RolUsuario.Comprador);
 
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
+            Compra compra = _compras.Comprar(pedido.EventoId, pedido.ModalidadId, pedido.Cantidad, pedido.DNI);
 
-            var servicio = new ServicioCompra(datos);
-            Compra compra = servicio.Comprar(pedido.EventoId, pedido.ModalidadId, pedido.Cantidad, pedido.DNI);
-
-            _archivos.GuardarDatos(datos);
-            return Created("/api/compras/" + compra.Id, compra);
+            _archivos.GuardarDatos(_datos);
+            return Created("/api/compras/" + compra.Id, new CompraRespuesta(compra));
         }
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ex.Message);
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }
@@ -213,16 +224,12 @@ public class GestionController : ControllerBase
     [HttpGet("compras/{id}")]
     public IActionResult ObtenerCompra(int id)
     {
-        using var bloqueo = _archivos.AbrirBloqueo();
-        Datos datos = _archivos.LeerDatos();
-
-        var servicio = new ServicioCompra(datos);
-        Compra? compra = servicio.ObtenerCompra(id);
+        Compra? compra = _compras.ObtenerCompra(id);
 
         if (compra == null)
             return NotFound();
 
-        return Ok(compra);
+        return Ok(new CompraRespuesta(compra));
     }
 
     [HttpGet("reportes/recaudacion")]
@@ -230,19 +237,24 @@ public class GestionController : ControllerBase
     {
         try
         {
-            _usuarios.ValidarRol(dni, "Organizador");
+            _usuarios.ValidarRol(dni, RolUsuario.Organizador);
 
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
+            var respuestas = new List<ReporteEventoRespuesta>();
 
-            var servicio = new ServicioCompra(datos);
-            return Ok(servicio.ObtenerRecaudacion());
+            foreach (ReporteEvento reporte in _compras.ObtenerRecaudacion())
+                respuestas.Add(new ReporteEventoRespuesta(reporte));
+
+            return Ok(respuestas);
         }
         catch (UnauthorizedAccessException ex)
         {
             return StatusCode(403, ex.Message);
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }

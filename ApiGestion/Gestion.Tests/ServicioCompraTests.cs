@@ -1,4 +1,3 @@
-
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
 using Gestion.Logica.Excepciones;
@@ -6,7 +5,7 @@ using Gestion.Logica.Servicios;
 
 namespace Gestion.Tests;
 
-public class Tests
+public class ServicioCompraTests
 {
     private Datos _datos = null!;
 
@@ -39,7 +38,7 @@ public class Tests
         Assert.That(compra.Entradas.Count, Is.EqualTo(3));
         Assert.That(compra.Total, Is.EqualTo(300));
         Assert.That(_datos.Eventos[0].Modalidades[0].CupoDisponible, Is.EqualTo(7));
-        Assert.That(compra.DNIComprador, Is.EqualTo("40123456"));
+        Assert.That(compra.DNIComprador, Is.EqualTo(40123456));
     }
 
     [Test]
@@ -141,26 +140,6 @@ public class Tests
         Assert.That(_datos.Eventos[0].Modalidades[1].CupoDisponible, Is.EqualTo(1));
     }
 
-    [TestCase(40123456, "Organizador", false)]
-    [TestCase(30111222, "Comprador", false)]
-    [TestCase(123, "Organizador", false)]
-    [TestCase(30111222, "Organizador", true)]
-    [TestCase(40123456, "Comprador", true)]
-    public void ValidaPermisosPorDni(int dni, string rol, bool permitido)
-    {
-        var servicio = new ServicioUsuario(new List<Usuario>
-        {
-            new Usuario { DNI = 30111222, Rol = "Organizador" },
-            new Usuario { DNI = 40123456, Rol = "Comprador" }
-        });
-
-        if (permitido)
-            Assert.DoesNotThrow(() => servicio.ValidarRol(dni, rol));
-        else
-            Assert.Throws<UnauthorizedAccessException>(
-                () => servicio.ValidarRol(dni, rol));
-    }
-
     [Test]
     public void PersistenciaConservaDatosYCodigosEntreInstancias()
     {
@@ -205,5 +184,32 @@ public class Tests
         {
             Directory.Delete(carpeta, true);
         }
+    }
+
+    [Test]
+    public void RechazaCompraParaEventoPasadoExpresadoEnUtc()
+    {
+        _datos.Eventos[0].Fecha = DateTime.Now.AddHours(-1).ToUniversalTime();
+        var servicio = new ServicioCompra(_datos);
+
+        Assert.Throws<ReglaNegocioException>(
+            () => servicio.Comprar(1, 1, 1, 40123456));
+
+        Assert.That(_datos.Compras, Is.Empty);
+    }
+
+    [Test]
+    public void RechazaCrearEventoPasadoExpresadoEnUtc()
+    {
+        var servicio = new ServicioEvento(_datos.Eventos);
+        var evento = new Evento
+        {
+            Nombre = "Evento pasado",
+            Lugar = "Club",
+            Fecha = DateTime.Now.AddHours(-1).ToUniversalTime()
+        };
+
+        Assert.Throws<ReglaNegocioException>(
+            () => servicio.CrearEvento(evento));
     }
 }

@@ -1,18 +1,59 @@
-
 const API = "http://localhost:5175/api";
+const API_VALIDACION = "http://localhost:5012/api/validaciones";
 
 let eventoId = 0;
 
-async function cargar() {
-    const usuarios = await (await fetch(API + "/usuarios")).json();
-    const eventos = await (await fetch(API + "/eventos")).json();
+async function leerError(respuesta) {
+    const texto = await respuesta.text();
 
-    for (let usuario of usuarios) {
-        document.getElementById("usuario").innerHTML += `<option value="${usuario.dni}" data-rol="${usuario.rol}">${usuario.nombre} (${usuario.rol})</option>`;
+    try {
+        const error = JSON.parse(texto);
+
+        if (error.errors) {
+            let mensaje = "";
+
+            for (let campo in error.errors) {
+                mensaje += error.errors[campo].join(" ") + " ";
+            }
+
+            return mensaje.trim();
+        }
+
+        return error.title || texto;
+    } catch {
+        return texto;
     }
+}
 
-    for (let evento of eventos) {
-        document.getElementById("eventos").innerHTML += `<button value="${evento.id}">${evento.nombre}</button>`;
+async function cargar() {
+    const mensaje = document.getElementById("mensaje");
+
+    try {
+        const respuestaUsuarios = await fetch(API + "/usuarios");
+        const respuestaEventos = await fetch(API + "/eventos");
+
+        if (!respuestaUsuarios.ok || !respuestaEventos.ok) {
+            mensaje.textContent = "No se pudieron cargar los datos.";
+            return;
+        }
+
+        const usuarios = await respuestaUsuarios.json();
+        const eventos = await respuestaEventos.json();
+
+        for (let usuario of usuarios) {
+            document.getElementById("usuario").innerHTML +=
+                `<option value="${usuario.dni}" data-rol="${usuario.rol}">${usuario.nombre} (${usuario.rol})</option>`;
+        }
+
+        for (let evento of eventos) {
+            document.getElementById("eventos").innerHTML +=
+                `<button value="${evento.id}">${evento.nombre}</button>`;
+        }
+
+        mensaje.textContent = "";
+    } catch {
+        mensaje.textContent =
+            "No se pudo conectar con la API de gestión. Comprobá que esté ejecutándose.";
     }
 }
 
@@ -24,30 +65,50 @@ function cambiarUsuario() {
         rol !== "Comprador" || eventoId === 0 || document.getElementById("modalidad").options.length === 0;
 }
 
-async function verEvento(id) {
-    const respuesta = await fetch(API + "/eventos/" + id);
-    const evento = await respuesta.json();
+async function verEvento(id, conservarResultado = false) {
+    const resultado = document.getElementById("resultado");
 
-    eventoId = id;
+    try {
+        const respuesta = await fetch(API + "/eventos/" + id);
 
-    document.getElementById("titulo").textContent = evento.nombre;
-    document.getElementById("descripcion").textContent = evento.descripcion;
-    document.getElementById("lugar").textContent = evento.lugar + " - " + evento.fecha;
+        if (!respuesta.ok) {
+            document.getElementById("mensaje").textContent =
+                "No se pudo cargar el evento.";
+            return;
+        }
 
-    let selector = document.getElementById("modalidad");
-    selector.innerHTML = "";
+        const evento = await respuesta.json();
+        eventoId = id;
 
-    for (let modalidad of evento.modalidades) {
-        selector.innerHTML += `<option value="${modalidad.id}">${modalidad.nombre} - $${modalidad.precio} - Cupo: ${modalidad.cupoDisponible}</option>`;
+        document.getElementById("titulo").textContent = evento.nombre;
+        document.getElementById("descripcion").textContent = evento.descripcion;
+        document.getElementById("lugar").textContent =
+            evento.lugar + " - " + evento.fecha;
+
+        const selector = document.getElementById("modalidad");
+        selector.innerHTML = "";
+
+        for (let modalidad of evento.modalidades) {
+            selector.innerHTML +=
+                `<option value="${modalidad.id}">${modalidad.nombre} - $${modalidad.precio} - Cupo: ${modalidad.cupoDisponible}</option>`;
+        }
+
+        document.getElementById("detalle").hidden = false;
+        document.getElementById("mensaje").textContent = "";
+
+        if (!conservarResultado)
+            resultado.textContent = "";
+
+        cambiarUsuario();
+    } catch {
+        document.getElementById("mensaje").textContent =
+            "No se pudo actualizar el evento. Comprobá que la API de gestión esté ejecutándose.";
     }
-
-    document.getElementById("detalle").hidden = false;
-    document.getElementById("resultado").textContent = "";
-
-    cambiarUsuario();
 }
 
 async function comprar() {
+    const resultado = document.getElementById("resultado");
+
     const pedido = {
         dni: Number(document.getElementById("usuario").value),
         eventoId: eventoId,
@@ -55,33 +116,65 @@ async function comprar() {
         cantidad: Number(document.getElementById("cantidad").value)
     };
 
-    const respuesta = await fetch(API + "/compras", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(pedido)
-    });
+    try {
+        const respuesta = await fetch(API + "/compras", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pedido)
+        });
 
-    if (!respuesta.ok) {
-        document.getElementById("resultado").textContent = await respuesta.text();
-        return;
+        if (!respuesta.ok) {
+            resultado.textContent = await leerError(respuesta);
+            return;
+        }
+
+        const compra = await respuesta.json();
+        let codigos = "";
+
+        for (let entrada of compra.entradas)
+            codigos += entrada.codigo + " ";
+
+        resultado.textContent =
+            "Compra exitosa - Total: $" + compra.total +
+            " - Entradas: " + codigos;
+
+        await verEvento(pedido.eventoId, true);
+    } catch {
+        resultado.textContent =
+            "No se recibió la confirmación de compra. Revisá la conexión antes de volver a intentarlo.";
     }
+}
 
-   
-    const compra = await respuesta.json();
-    let codigos = "";
+async function validarEntrada() {
+    const resultado = document.getElementById("resultadoValidar");
 
-    for (let entrada of compra.entradas) {
-        codigos += entrada.codigo + " ";
+    const pedido = {
+        codigo: document.getElementById("codigoValidar")
+            .value.trim().toUpperCase(),
+        eventoId: Number(document.getElementById("eventoValidar").value)
+    };
+
+    try {
+        const respuesta = await fetch(API_VALIDACION, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(pedido)
+        });
+
+        if (respuesta.ok) {
+            resultado.textContent = "Entrada válida. Ingreso permitido.";
+        } else {
+            resultado.textContent = await leerError(respuesta);
+        }
+    } catch {
+        resultado.textContent =
+            "No se recibió la confirmación del ingreso. Comprobá que la API de validación esté ejecutándose.";
     }
-
-    document.getElementById("resultado").textContent =
-        "Compra exitosa - Total: $" + compra.total +
-        " - Entradas: " + codigos;
-
 }
 
 document.getElementById("usuario").addEventListener("change", cambiarUsuario);
 document.getElementById("comprar").addEventListener("click", comprar);
+document.getElementById("validar").addEventListener("click", validarEntrada);
 
 document.getElementById("eventos").addEventListener("click", function(evento) {
     if (evento.target.tagName === "BUTTON") verEvento(Number(evento.target.value));

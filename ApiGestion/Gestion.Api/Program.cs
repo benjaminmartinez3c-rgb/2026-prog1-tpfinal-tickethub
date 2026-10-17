@@ -1,4 +1,3 @@
-
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Servicios;
 
@@ -14,6 +13,14 @@ string carpeta = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "
 builder.Services.AddSingleton(new ArchivoDatos(carpeta));
 builder.Services.AddTransient<ServicioUsuario>(sp =>
     new ServicioUsuario(sp.GetRequiredService<ArchivoDatos>().LeerUsuarios()));
+
+builder.Services.AddScoped<Datos>(sp =>
+    sp.GetRequiredService<ArchivoDatos>().LeerDatos());
+
+builder.Services.AddScoped<ServicioEvento>(sp =>
+    new ServicioEvento(sp.GetRequiredService<Datos>().Eventos));
+
+builder.Services.AddScoped<ServicioCompra>();
 
 var app = builder.Build();
 

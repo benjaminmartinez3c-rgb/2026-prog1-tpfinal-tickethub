@@ -1,5 +1,5 @@
-
 using Gestion.Logica.Archivos;
+using Validacion.Logica;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +11,11 @@ builder.Services.AddCors();
 string carpeta = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "Datos");
 
 builder.Services.AddSingleton(new ArchivoDatos(carpeta));
+
+builder.Services.AddScoped<Datos>(sp =>
+    sp.GetRequiredService<ArchivoDatos>().LeerDatos());
+
+builder.Services.AddScoped<ServicioValidacion>();
 
 var app = builder.Build();
 

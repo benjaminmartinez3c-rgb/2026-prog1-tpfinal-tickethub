@@ -1,5 +1,6 @@
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
+using Gestion.Logica.Excepciones;
 
 namespace Validacion.Logica;
 
@@ -14,7 +15,13 @@ public class ServicioValidacion
 
     public Entrada Validar(string codigo, int eventoId)
     {
+        if (string.IsNullOrWhiteSpace(codigo) || eventoId <= 0)
+            throw new ReglaNegocioException("Debe indicar el código y el evento.");
+
+        codigo = codigo.Trim().ToUpper();
+
         Entrada? entrada = null;
+
         foreach (Compra compra in _datos.Compras)
         {
             foreach (Entrada entradaCompra in compra.Entradas)
@@ -23,24 +30,36 @@ public class ServicioValidacion
                     entrada = entradaCompra;
             }
         }
+
         if (entrada == null)
-            throw new Exception("La entrada no existe.");
+            throw new RecursoNoEncontradoException("La entrada no existe.");
+
         if (entrada.EventoId != eventoId)
-            throw new Exception("La entrada es de otro evento.");
+            throw new ReglaNegocioException("La entrada es de otro evento.");
+
         if (entrada.Usada)
-            throw new Exception("La entrada ya fue usada.");
+            throw new ReglaNegocioException("La entrada ya fue usada.");
+
         Evento? evento = null;
+
         foreach (Evento eventoGuardado in _datos.Eventos)
         {
             if (eventoGuardado.Id == eventoId)
                 evento = eventoGuardado;
         }
-        if (evento == null || evento.Cancelado)
-            throw new Exception("El evento no existe o está cancelado.");
-        if (evento.Fecha.Date != DateTime.Today)
-            throw new Exception("La entrada solo se puede usar el día del evento.");
+
+        if (evento == null)
+            throw new RecursoNoEncontradoException("El evento no existe.");
+
+        if (evento.Cancelado)
+            throw new ReglaNegocioException("El evento está cancelado.");
+
+        if (evento.ObtenerFechaLocal().Date != DateTime.Today)
+            throw new ReglaNegocioException("La entrada solo se puede usar el día del evento.");
+
         entrada.Usada = true;
         entrada.FechaIngreso = DateTime.Now;
+
         return entrada;
     }
 }

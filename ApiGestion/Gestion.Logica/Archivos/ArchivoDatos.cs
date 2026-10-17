@@ -1,5 +1,5 @@
-
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Gestion.Logica.Entidades;
 
 namespace Gestion.Logica.Archivos;
@@ -7,23 +7,23 @@ namespace Gestion.Logica.Archivos;
 public class ArchivoDatos
 {
     private string _carpeta;
-    private JsonSerializerOptions _opciones;
+    private JsonSerializerSettings _opciones;
 
     public ArchivoDatos(string carpeta)
     {
         _carpeta = carpeta;
         Directory.CreateDirectory(carpeta);
 
-        _opciones = new JsonSerializerOptions();
-        _opciones.PropertyNameCaseInsensitive = true;
-        _opciones.WriteIndented = true;
+        _opciones = new JsonSerializerSettings();
+        _opciones.Formatting = Formatting.Indented;
+        _opciones.Converters.Add(new StringEnumConverter());
     }
 
     public List<Usuario> LeerUsuarios()
     {
         string ruta = Path.Combine(_carpeta, "usuarios.json");
         string json = File.ReadAllText(ruta);
-        return JsonSerializer.Deserialize<List<Usuario>>(json, _opciones)!;
+        return JsonConvert.DeserializeObject<List<Usuario>>(json, _opciones)!;
     }
 
     public Datos LeerDatos()
@@ -34,33 +34,15 @@ public class ArchivoDatos
             return new Datos();
 
         string json = File.ReadAllText(ruta);
-        return JsonSerializer.Deserialize<Datos>(json, _opciones)!;
+        return JsonConvert.DeserializeObject<Datos>(json, _opciones)!;
     }
 
     public void GuardarDatos(Datos datos)
     {
         string ruta = Path.Combine(_carpeta, "datos.json");
-        string json = JsonSerializer.Serialize(datos, _opciones);
+        string json = JsonConvert.SerializeObject(datos, _opciones);
 
         File.WriteAllText(ruta + ".tmp", json);
         File.Move(ruta + ".tmp", ruta, true);
-    }
-
-    public FileStream AbrirBloqueo()
-    {
-        for (int intento = 0; intento < 100; intento++)
-        {
-            try
-            {
-                string ruta = Path.Combine(_carpeta, "datos.lock");
-                return new FileStream(ruta, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            }
-            catch (IOException)
-            {
-                Thread.Sleep(20);
-            }
-        }
-
-        throw new IOException("Los datos están siendo usados. Intentelo de vuelta.");
     }
 }

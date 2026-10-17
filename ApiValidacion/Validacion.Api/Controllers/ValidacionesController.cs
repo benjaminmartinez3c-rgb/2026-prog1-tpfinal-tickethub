@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
+using Gestion.Logica.Excepciones;
 using Validacion.Api.Models;
 using Validacion.Logica;
 
@@ -11,27 +12,34 @@ namespace Validacion.Api.Controllers;
 public class ValidacionesController : ControllerBase
 {
     private ArchivoDatos _archivos;
+    private Datos _datos;
+    private ServicioValidacion _servicio;
 
-    
-public ValidacionesController(ArchivoDatos archivos)
-{
-    _archivos = archivos;
-}
-
+    public ValidacionesController(
+        ArchivoDatos archivos,
+        Datos datos,
+        ServicioValidacion servicio)
+    {
+        _archivos = archivos;
+        _datos = datos;
+        _servicio = servicio;
+    }
 
     [HttpPost]
     public IActionResult Validar(PedidoValidacion pedido)
     {
         try
         {
-            using var bloqueo = _archivos.AbrirBloqueo();
-            Datos datos = _archivos.LeerDatos();
-            var servicio = new ServicioValidacion(datos);
-            Entrada entrada = servicio.Validar(pedido.Codigo, pedido.EventoId);
-            _archivos.GuardarDatos(datos);
-            return Ok(entrada);
+            Entrada entrada = _servicio.Validar(pedido.Codigo, pedido.EventoId);
+
+            _archivos.GuardarDatos(_datos);
+            return Ok(new EntradaRespuesta(entrada));
         }
-        catch (Exception ex)
+        catch (RecursoNoEncontradoException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (ReglaNegocioException ex)
         {
             return BadRequest(ex.Message);
         }

@@ -1,4 +1,3 @@
-
 using Gestion.Logica.Entidades;
 using Gestion.Logica.Excepciones;
 
@@ -15,6 +14,7 @@ public class ServicioEvento
 
     public Evento CrearEvento(Evento evento)
     {
+        evento.Fecha = evento.ObtenerFechaLocal();
         evento.Id = _eventos.Count + 1;
 
         if (string.IsNullOrWhiteSpace(evento.Nombre) || string.IsNullOrWhiteSpace(evento.Lugar))
@@ -52,7 +52,7 @@ public class ServicioEvento
 
         foreach (Evento evento in _eventos)
         {
-            if (!evento.Cancelado && evento.Fecha > DateTime.Now)
+            if (!evento.Cancelado && evento.ObtenerFechaLocal() > DateTime.Now)
                 disponibles.Add(evento);
         }
 
@@ -68,6 +68,9 @@ public class ServicioEvento
 
         if (evento.Cancelado)
             throw new ReglaNegocioException("No se puede editar un evento cancelado.");
+
+        if (fecha.Kind == DateTimeKind.Utc)
+            fecha = fecha.ToLocalTime();
 
         if (string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(lugar) || fecha <= DateTime.Now)
             throw new ReglaNegocioException("El nombre y lugar son obligatorios y la fecha debe ser futura.");

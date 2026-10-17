@@ -1,4 +1,3 @@
-
 using System.Security.Cryptography;
 using Gestion.Logica.Archivos;
 using Gestion.Logica.Entidades;
@@ -22,7 +21,7 @@ public class ServicioCompra
         if (evento == null)
             throw new RecursoNoEncontradoException("El evento no existe.");
 
-        if (evento.Cancelado || evento.Fecha <= DateTime.Now)
+        if (evento.Cancelado || evento.ObtenerFechaLocal() <= DateTime.Now)
             throw new ReglaNegocioException("No se puede comprar para un evento cancelado o cuya fecha ya pasó.");
 
         ModalidadEntrada? modalidad = null;
@@ -45,7 +44,7 @@ public class ServicioCompra
         var compra = new Compra
         {
             Id = _datos.Compras.Count + 1,
-            DNIComprador = dni.ToString(),
+            DNIComprador = dni,
             Fecha = DateTime.Now,
             Total = modalidad.Precio * cantidad
         };

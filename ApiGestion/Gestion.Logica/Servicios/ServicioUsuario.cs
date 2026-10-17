@@ -1,4 +1,3 @@
-
 using Gestion.Logica.Entidades;
 
 namespace Gestion.Logica.Servicios;
@@ -12,7 +11,7 @@ public class ServicioUsuario
         _usuarios = usuarios;
     }
 
-    public void ValidarRol(int dni, string rol)
+    public void ValidarRol(int dni, RolUsuario rol)
     {
         Usuario? usuario = null;
 

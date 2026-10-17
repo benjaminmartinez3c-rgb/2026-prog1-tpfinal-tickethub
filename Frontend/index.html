@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -9,6 +8,7 @@
 </head>
 <body>
     <h1>TicketHub</h1>
+    <p id="mensaje"></p>
 
     <h2>Seleccionar usuario</h2>
     <select id="usuario">
@@ -33,6 +33,14 @@
         </div>
 
         <p id="resultado"></p>
+    </section>
+
+    <section>
+        <h2>Validar entrada</h2>
+        <input type="number" id="eventoValidar" placeholder="ID del evento">
+        <input type="text" id="codigoValidar" placeholder="Código de entrada">
+        <button id="validar">Validar</button>
+        <p id="resultadoValidar"></p>
     </section>
 
     <script src="script.js"></script>

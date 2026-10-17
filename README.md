@@ -10,6 +10,8 @@ Materia: Programación I - UCSE
 - `Frontend`: página web para consultar eventos y comprar entradas.
 - `Datos`: contiene los archivos JSON. Ambas APIs utilizan el mismo `datos.json` para guardar y consultar la información.
 
+Requisito: tener instalado el SDK de .NET 8, que incluye los runtimes necesarios para compilar y ejecutar ambas APIs.
+
 ```
 dotnet run --project ApiGestion/Gestion.Api --launch-profile http
 dotnet run --project ApiValidacion/Validacion.Api --launch-profile http
@@ -46,3 +48,5 @@ dotnet test ApiValidacion/Validacion.sln
 Abrir el frontend
 
 Abrir Frontend/index.html con la extensión Live Server de VS Code, con la API de Gestión ejecutándose.
+Para usar también la sección «Validar entrada», debe estar ejecutándose la API de Validación en el puerto 5012, además de la API de Gestión en el puerto 5175.
+Las fechas de los eventos se interpretan en la hora local de la computadora. Si se reciben en UTC, se convierten a hora local para comprobar la disponibilidad y el día de validación
