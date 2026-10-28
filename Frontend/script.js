@@ -2,6 +2,7 @@ const API = "http://localhost:5175/api";
 const API_VALIDACION = "http://localhost:5012/api/validaciones";
 
 let eventoId = 0;
+let comprando = false;
 
 async function leerError(respuesta) {
     const texto = await respuesta.text();
@@ -58,11 +59,25 @@ async function cargar() {
 }
 
 function cambiarUsuario() {
-    let selector = document.getElementById("usuario");
-    let rol = selector.options[selector.selectedIndex].getAttribute("data-rol");
+    const selector = document.getElementById("usuario");
+    const rol = selector.options[selector.selectedIndex]
+        .getAttribute("data-rol");
+
+    const modalidades = document.getElementById("modalidad");
+    let sinCupo = true;
+
+    if (modalidades.selectedIndex >= 0) {
+        const opcion = modalidades.options[modalidades.selectedIndex];
+        sinCupo = Number(opcion.getAttribute("data-cupo")) <= 0;
+    }
 
     document.getElementById("compra").hidden =
-        rol !== "Comprador" || eventoId === 0 || document.getElementById("modalidad").options.length === 0;
+        rol !== "Comprador" ||
+        eventoId === 0 ||
+        modalidades.options.length === 0;
+
+    document.getElementById("comprar").disabled =
+        comprando || sinCupo;
 }
 
 async function verEvento(id, conservarResultado = false) {
@@ -86,12 +101,22 @@ async function verEvento(id, conservarResultado = false) {
             evento.lugar + " - " + evento.fecha;
 
         const selector = document.getElementById("modalidad");
+        const modalidadAnterior = selector.value;
+
         selector.innerHTML = "";
 
         for (let modalidad of evento.modalidades) {
+            let disponibilidad = "Cupo: " + modalidad.cupoDisponible;
+
+            if (modalidad.cupoDisponible === 0)
+                disponibilidad = "Agotado";
+
             selector.innerHTML +=
-                `<option value="${modalidad.id}">${modalidad.nombre} - $${modalidad.precio} - Cupo: ${modalidad.cupoDisponible}</option>`;
+                `<option value="${modalidad.id}" data-cupo="${modalidad.cupoDisponible}">${modalidad.nombre} - $${modalidad.precio} - ${disponibilidad}</option>`;
         }
+
+        if (conservarResultado && modalidadAnterior !== "")
+            selector.value = modalidadAnterior;
 
         document.getElementById("detalle").hidden = false;
         document.getElementById("mensaje").textContent = "";
@@ -107,14 +132,27 @@ async function verEvento(id, conservarResultado = false) {
 }
 
 async function comprar() {
+    if (comprando)
+        return;
+
     const resultado = document.getElementById("resultado");
+    const cantidad = Number(document.getElementById("cantidad").value);
+
+    if (!Number.isInteger(cantidad) || cantidad <= 0) {
+        resultado.textContent =
+            "Ingresá una cantidad entera mayor a cero.";
+        return;
+    }
 
     const pedido = {
         dni: Number(document.getElementById("usuario").value),
         eventoId: eventoId,
         modalidadId: Number(document.getElementById("modalidad").value),
-        cantidad: Number(document.getElementById("cantidad").value)
+        cantidad: cantidad
     };
+
+    comprando = true;
+    cambiarUsuario();
 
     try {
         const respuesta = await fetch(API + "/compras", {
@@ -135,13 +173,15 @@ async function comprar() {
             codigos += entrada.codigo + " ";
 
         resultado.textContent =
-            "Compra exitosa - Total: $" + compra.total +
-            " - Entradas: " + codigos;
+            "Compra exitosa - Total: $" + compra.total + " - Entradas: " + codigos;
 
         await verEvento(pedido.eventoId, true);
     } catch {
         resultado.textContent =
             "No se recibió la confirmación de compra. Revisá la conexión antes de volver a intentarlo.";
+    } finally {
+        comprando = false;
+        cambiarUsuario();
     }
 }
 
@@ -167,12 +207,13 @@ async function validarEntrada() {
             resultado.textContent = await leerError(respuesta);
         }
     } catch {
-        resultado.textContent =
-            "No se recibió la confirmación del ingreso. Comprobá que la API de validación esté ejecutándose.";
+        resultado.textContent = "No se recibió la confirmación del ingreso. Comprobá que la API de validación esté ejecutándose.";
     }
 }
 
 document.getElementById("usuario").addEventListener("change", cambiarUsuario);
+
+document.getElementById("modalidad").addEventListener("change", cambiarUsuario);
 document.getElementById("comprar").addEventListener("click", comprar);
 document.getElementById("validar").addEventListener("click", validarEntrada);
 

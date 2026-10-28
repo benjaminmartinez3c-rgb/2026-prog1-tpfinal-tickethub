@@ -45,4 +45,28 @@ public class ArchivoDatos
         File.WriteAllText(ruta + ".tmp", json);
         File.Move(ruta + ".tmp", ruta, true);
     }
+
+    public FileStream AbrirBloqueo()
+    {
+        string ruta = Path.Combine(_carpeta, "datos.lock");
+
+        for (int intento = 0; intento < 100; intento++)
+        {
+            try
+            {
+                return new FileStream(
+                    ruta,
+                    FileMode.OpenOrCreate,
+                    FileAccess.ReadWrite,
+                    FileShare.None);
+            }
+            catch (IOException)
+            {
+                Thread.Sleep(20);
+            }
+        }
+
+        throw new IOException(
+            "Los datos están siendo utilizados. Intentá nuevamente.");
+    }
 }

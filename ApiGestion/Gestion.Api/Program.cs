@@ -14,8 +14,15 @@ builder.Services.AddSingleton(new ArchivoDatos(carpeta));
 builder.Services.AddTransient<ServicioUsuario>(sp =>
     new ServicioUsuario(sp.GetRequiredService<ArchivoDatos>().LeerUsuarios()));
 
+builder.Services.AddScoped<FileStream>(sp =>
+    sp.GetRequiredService<ArchivoDatos>().AbrirBloqueo());
+
 builder.Services.AddScoped<Datos>(sp =>
-    sp.GetRequiredService<ArchivoDatos>().LeerDatos());
+{
+    sp.GetRequiredService<FileStream>();
+
+    return sp.GetRequiredService<ArchivoDatos>().LeerDatos();
+});
 
 builder.Services.AddScoped<ServicioEvento>(sp =>
     new ServicioEvento(sp.GetRequiredService<Datos>().Eventos));

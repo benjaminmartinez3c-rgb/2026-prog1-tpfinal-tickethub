@@ -12,8 +12,15 @@ string carpeta = Path.Combine(builder.Environment.ContentRootPath, "..", "..", "
 
 builder.Services.AddSingleton(new ArchivoDatos(carpeta));
 
+builder.Services.AddScoped<FileStream>(sp =>
+    sp.GetRequiredService<ArchivoDatos>().AbrirBloqueo());
+
 builder.Services.AddScoped<Datos>(sp =>
-    sp.GetRequiredService<ArchivoDatos>().LeerDatos());
+{
+    sp.GetRequiredService<FileStream>();
+
+    return sp.GetRequiredService<ArchivoDatos>().LeerDatos();
+});
 
 builder.Services.AddScoped<ServicioValidacion>();
 
