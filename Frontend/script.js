@@ -5,6 +5,8 @@ let eventoId = 0;
 let comprando = false;
 
 async function leerError(respuesta) {
+    if (respuesta.status >= 500)
+        return "No se pudo completar la operación. Intentá nuevamente.";
     const texto = await respuesta.text();
 
     try {
