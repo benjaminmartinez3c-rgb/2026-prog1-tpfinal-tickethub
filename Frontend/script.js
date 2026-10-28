@@ -22,7 +22,7 @@ async function leerError(respuesta) {
             return mensaje.trim();
         }
 
-        return error.title || texto;
+        return error.mensaje || error.title || texto;
     } catch {
         return texto;
     }
