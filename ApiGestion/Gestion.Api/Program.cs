@@ -36,5 +36,16 @@ app.UseSwaggerUI();
 
 app.UseCors(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
+app.UseExceptionHandler(manejador =>
+{
+    manejador.Run(async contexto =>
+    {
+        contexto.Response.StatusCode = 500;
+        await contexto.Response.WriteAsJsonAsync(new
+        {
+            mensaje = "Ocurrió un error inesperado. Intentá nuevamente."
+        });
+    });
+});
 app.MapControllers();
 app.Run();
