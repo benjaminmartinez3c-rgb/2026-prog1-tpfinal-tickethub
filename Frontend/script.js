@@ -48,9 +48,18 @@ async function cargar() {
                 `<option value="${usuario.dni}" data-rol="${usuario.rol}">${usuario.nombre} (${usuario.rol})</option>`;
         }
 
+        const catalogo = document.getElementById("eventos");
+        catalogo.innerHTML = "";
+        if (eventos.length === 0)
+            catalogo.textContent = "No hay eventos disponibles.";
         for (let evento of eventos) {
-            document.getElementById("eventos").innerHTML +=
-                `<button value="${evento.id}">${evento.nombre}</button>`;
+            const fecha = new Date(evento.fecha).toLocaleString("es-AR", {
+                dateStyle: "short",
+                timeStyle: "short"
+            });
+            catalogo.innerHTML +=
+                `<button value="${evento.id}">` +
+                `${evento.nombre} - ${fecha} - ${evento.lugar}</button>`;
         }
 
         mensaje.textContent = "";
@@ -97,10 +106,15 @@ async function verEvento(id, conservarResultado = false) {
         const evento = await respuesta.json();
         eventoId = id;
 
-        document.getElementById("titulo").textContent = evento.nombre;
+        const fecha = new Date(evento.fecha).toLocaleString("es-AR", {
+        dateStyle: "short",
+        timeStyle: "short"
+        });
+        document.getElementById("titulo").textContent =
+            evento.nombre + " (ID: " + evento.id + ")";
         document.getElementById("descripcion").textContent = evento.descripcion;
         document.getElementById("lugar").textContent =
-            evento.lugar + " - " + evento.fecha;
+            evento.lugar + " - " + fecha;
 
         const selector = document.getElementById("modalidad");
         const modalidadAnterior = selector.value;
@@ -109,12 +123,15 @@ async function verEvento(id, conservarResultado = false) {
 
         for (let modalidad of evento.modalidades) {
             let disponibilidad = "Cupo: " + modalidad.cupoDisponible;
-
             if (modalidad.cupoDisponible === 0)
                 disponibilidad = "Agotado";
-
+            let texto = modalidad.nombre + " - $" + modalidad.precio +
+                " - " + disponibilidad;
+            if (modalidad.beneficios)
+                texto += " - " + modalidad.beneficios;
             selector.innerHTML +=
-                `<option value="${modalidad.id}" data-cupo="${modalidad.cupoDisponible}">${modalidad.nombre} - $${modalidad.precio} - ${disponibilidad}</option>`;
+                `<option value="${modalidad.id}" ` +
+                `data-cupo="${modalidad.cupoDisponible}">${texto}</option>`;
         }
 
         if (conservarResultado && modalidadAnterior !== "")
@@ -172,10 +189,11 @@ async function comprar() {
         let codigos = "";
 
         for (let entrada of compra.entradas)
-            codigos += entrada.codigo + " ";
-
+            codigos += "\n- " + entrada.codigo;
+        
         resultado.textContent =
-            "Compra exitosa - Total: $" + compra.total + " - Entradas: " + codigos;
+            "Compra Nº " + compra.id + " exitosa - Total: $" + compra.total +
+            "\nEntradas:" + codigos;
 
         await verEvento(pedido.eventoId, true);
     } catch {
@@ -189,27 +207,30 @@ async function comprar() {
 
 async function validarEntrada() {
     const resultado = document.getElementById("resultadoValidar");
-
+    resultado.className = "";
     const pedido = {
         codigo: document.getElementById("codigoValidar")
             .value.trim().toUpperCase(),
         eventoId: Number(document.getElementById("eventoValidar").value)
     };
-
     try {
         const respuesta = await fetch(API_VALIDACION, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(pedido)
         });
-
         if (respuesta.ok) {
+            resultado.className = "exito";
             resultado.textContent = "Entrada válida. Ingreso permitido.";
         } else {
+            resultado.className = "error";
             resultado.textContent = await leerError(respuesta);
         }
     } catch {
-        resultado.textContent = "No se recibió la confirmación del ingreso. Comprobá que la API de validación esté ejecutándose.";
+        resultado.className = "error";
+        resultado.textContent =
+            "No se recibió la confirmación del ingreso. " +
+            "Comprobá que la API de validación esté ejecutándose.";
     }
 }
 

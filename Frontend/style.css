@@ -31,3 +31,13 @@ button {
     color: white;
     cursor: pointer;
 }
+
+#resultado {
+    white-space: pre-line;
+}
+.exito {
+    color: #15803d;
+}
+.error {
+    color: #b91c1c;
+}
